@@ -6,7 +6,7 @@ argparse==1.2.1
 cffi==1.2.1
 cryptography==1.0.2
 enum34==1.0.4
-gunicorn==19.3.0
+gunicorn==19.5.0
 idna==2.0
 ipaddress==1.0.14
 itsdangerous==0.24
