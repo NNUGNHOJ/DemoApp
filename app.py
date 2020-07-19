@@ -1,57 +1,63 @@
 import os
-basedir = os.path.abspath(os.path.dirname(__file__))
-
-import sys
-sys.path.append('/usr/lib/python2.7/dist-packages')
-
 import pymysql as mysql
-import json
-from flask import Flask, request, render_template
-
-'''
-run sql to create table
-
-CREATE TABLE `stat` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `host` varchar(256) DEFAULT NULL,
-  `mem_free` int(11) DEFAULT NULL,
-  `mem_usage` int(11) DEFAULT NULL,
-  `mem_total` int(11) DEFAULT NULL,
-  `load_avg` varchar(128) DEFAULT NULL,
-  `time` bigint(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `host` (`host`(255))
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8;
-
-'''
-
-
+from flask import Flask, request, render_template, redirect, url_for
 
 app = Flask(__name__)
 
-db = mysql.connect(user="root", passwd="password", db="twitterdb", charset="utf8")
-db.autocommit(True)
-c = db.cursor()
+#db = mysql.connect(user="root", passwd="password", db="twitterdb", charset="utf8")
+#db.autocommit(True)
+#c = db.cursor()
 
-@app.route("/", methods=["GET", "POST"])
-def hello():
-    sql = ""
-    if request.method == "POST":
-        data = request.json
-        try:
-            sql = "INSERT INTO `stat` (`host`,`mem_free`,`mem_usage`,`mem_total`,`load_avg`,`time`) VALUES('%s', '%d', '%d', '%d', '%s', '%d')" % (data['Host'], data['MemFree'], data['MemUsage'], data['MemTotal'], data['LoadAvg'], int(data['Time']))
-            ret = c.execute(sql)
-        except mysql.IntegrityError:
-            pass
-        return "OK"
-    else:
-        return render_template("mon.html")
+cookiename = 'openAMUserCookieName'
+amURL = 'https://openam.example.com/' #URL for openam
+validTokenAPI = amURL + 'openam/json/sessions/{token}?_action=validate'
+loginURL = amURL + 'openam/UI/Login'
 
-@app.route("/data", methods=["GET"])
-def getdata():
-    c.execute("SELECT `time`,`mem_usage` FROM `stat`")
-    ones = [[i[0]*1000, i[1]] for i in c.fetchall()]
-    return "%s(%s);" % (request.args.get('callback'), json.dumps(ones))
+'''
+#Connecting to forgerock
+def session_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        usercookie = request.cookies.get(cookiename)
+        if usercookie:
+            amQuery = requests.post(validTokenAPI.format(token=usercookie))
+            if amQuery.json()['valid']:
+                return f(*args, **kwargs)
+            return redirect(loginURL)
+        return decorated_function
+
+
+@app.route('/members_page')
+@session_required
+def members_page():
+  pass
+
+'''
+
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+
+@app.route('/login')
+def login():
+    return render_template('login.html')
+
+
+@app.route('/subscribers')
+def subscribers():
+    return render_template('subscribers.html')
+
+
+@app.route('/publishers')
+def publishers():
+    return render_template('publishers.html')
+
+@app.route('/authorize/forgerock')
+def oauth_authorize():
+    # function to authorize with AM
+    return #oauth.authorize()
+
 
 if __name__ == "__main__":
-    app.run(host="localhost", port=8888, debug=True)
+    app.run(host="localhost", debug=True)
